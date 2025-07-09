@@ -1,5 +1,5 @@
 # 代码整理中... `(*>﹏<*)′
-查看演示视频：(https://www.bilibili.com/video/BV1J8Gwz9EnQ/?spm_id_from=333.1387.homepage.video_card.click&vd_source=40ef11bfc9cca41b08a1cd5506e933a5)
+查看演示视频：https://www.bilibili.com/video/BV1J8Gwz9EnQ/?share_source=copy_web&vd_source=ecc3a651148c60d87173291ef5425db1
 # OrbitExpert AI Agent
 ### An AI-powered assistant for space mission planning, satellite operations, and orbital analysis. 
 ### developed by husonghua (lxiahu@hotmail.com)
