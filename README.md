@@ -1,4 +1,5 @@
 # 代码整理中... `(*>﹏<*)′
+查看演示视频：【AI-agent: 卫星轨道动力学专家】 https://www.bilibili.com/video/BV1J8Gwz9EnQ/?share_source=copy_web&vd_source=ecc3a651148c60d87173291ef5425db1
 # OrbitExpert AI Agent
 ### An AI-powered assistant for space mission planning, satellite operations, and orbital analysis. 
 ### developed by husonghua (lxiahu@hotmail.com)
