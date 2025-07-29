@@ -9,6 +9,7 @@ import os
 import time
 import sys
 from pathlib import Path
+from datetime import datetime
 from langchain_mcp_adapters.client import MultiServerMCPClient
 import asyncio
 
@@ -51,8 +52,62 @@ llm = ChatOpenAI(
 #######################  use other LLMs  #########################
 # see https://langchain-ai.github.io/langgraph/agents/models/
 
+# a function to get the tree of files
+def get_project_tree(root_path, prefix=''):
+    """生成项目文件结构树，自动忽略以'.'开头的文件/文件夹
+    
+    Args:
+        root_path (str): 根目录路径
+        prefix (str): 用于递归的内部参数，无需手动设置
+    
+    Returns:
+        str: 格式化的文件结构树字符串
+    """
+    lines = []
+    if prefix == '':  # 根目录
+        lines.append(os.path.basename(root_path.rstrip(os.sep)))
+    
+    # 过滤掉以 '.' 开头的文件/文件夹，并按字母排序
+    items = sorted(
+        [item for item in os.listdir(root_path) if not item.startswith('.')],
+        key=lambda x: (not os.path.isdir(os.path.join(root_path, x)), x)  # 目录优先
+    )
+    
+    for index, item in enumerate(items):
+        full_path = os.path.join(root_path, item)
+        is_last = index == len(items) - 1
+        
+        if os.path.isdir(full_path):
+            # 目录处理
+            lines.append(f"{prefix}{'└── ' if is_last else '├── '}{item}/")
+            new_prefix = prefix + ('    ' if is_last else '│   ')
+            lines.append(get_project_tree(full_path, new_prefix).lstrip())
+        else:
+            # 文件处理
+            lines.append(f"{prefix}{'└── ' if is_last else '├── '}{item}")
+    
+    return '\n'.join(line for line in lines if line)  # 过滤掉空行
+
+
+# 获取当前时间
+current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# 获取项目根目录
+PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+# 获取documents目录（用户主目录下的Documents文件夹）
+DOCUMENTS_DIR = Path.home() / "Documents"
+# 确保必要的目录存在
+FILES_DIR = PROJECT_ROOT / "files"
+FILES_DIR.mkdir(exist_ok=True)
+# 获取项目文件结构
+project_tree = get_project_tree(str(PROJECT_ROOT))
+
 # 系统提示词
-SYSTEM_PROMPT = """你是一个专业的航天器轨道力学专家AI助手，你的名字叫'小松鼠'。
+SYSTEM_PROMPT = f"""你是一个专业的航天器轨道力学专家AI助手，你的名字叫'小松鼠'。
+
+当前时间：{current_time}
+项目路径：{PROJECT_ROOT}
+项目文件结构：
+{project_tree}
 
 请遵循以下原则：
 1. 优先借用工具来完成任务，如果工具不适用，再考虑手动计算；
@@ -92,15 +147,6 @@ def typewriter_print(text, delay=0.02):
 def print_section_divider():
     """打印分隔线"""
     print("\n" + "═" * 60 + "\n")
-
-# 获取项目根目录
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
-# 获取documents目录（用户主目录下的Documents文件夹）
-DOCUMENTS_DIR = Path.home() / "Documents"
-
-# 确保必要的目录存在
-FILES_DIR = PROJECT_ROOT / "files"
-FILES_DIR.mkdir(exist_ok=True)
 
 # Initialize async components
 async def initialize_tools():
