@@ -7,9 +7,14 @@ Pillow>=9.0.0
 
 # AI/ML components
 langchain-core>=0.1.0
+langchain-openai>=0.1.0
 pydantic>=2.0.0
-langchain-deepseek>=0.1.0
-langchain-qwen>=0.1.0
+
+# LangGraph for agent construction
+langgraph>=0.1.0
+
+# MCP adapters for tool integration
+langchain-mcp-adapters>=0.1.0
 
 # Development extras (optional)
 jupyter>=1.0.0
