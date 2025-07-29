@@ -8,6 +8,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 import os
 import time
 import sys
+from pathlib import Path
 from langchain_mcp_adapters.client import MultiServerMCPClient
 import asyncio
 
@@ -92,6 +93,15 @@ def print_section_divider():
     """打印分隔线"""
     print("\n" + "═" * 60 + "\n")
 
+# 获取项目根目录
+PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+# 获取documents目录（用户主目录下的Documents文件夹）
+DOCUMENTS_DIR = Path.home() / "Documents"
+
+# 确保必要的目录存在
+FILES_DIR = PROJECT_ROOT / "files"
+FILES_DIR.mkdir(exist_ok=True)
+
 # Initialize async components
 async def initialize_tools():
     """异步初始化工具"""
@@ -102,8 +112,8 @@ async def initialize_tools():
                 "args": [
                     "-y",
                     "@modelcontextprotocol/server-filesystem",
-                    "d:/home/projects/orbitExpert",
-                    "d:/home/documents"
+                    str(PROJECT_ROOT),
+                    str(DOCUMENTS_DIR)
                 ],
                 "transport": "stdio"
             },
@@ -115,7 +125,7 @@ async def initialize_tools():
                     "@modelcontextprotocol/server-memory"
                 ],
                 "env": {
-                    "MEMORY_FILE_PATH": "d:/home/projects/orbitExpert/data/memory.json"
+                    "MEMORY_FILE_PATH": str(FILES_DIR / "memory.json")
                 },
                 "transport": "stdio"
             },
@@ -134,7 +144,7 @@ async def initialize_tools():
                 "command": "uv",
                 "args": [
                     "--directory",
-                    "D:/home/projects/mcp-server-satellite-orbit",
+                    "D:/home/projects/mcp-server-satellite-orbit/",  # run_server.py所在的路径
                     "run",
                     "run_server.py"
                 ],
