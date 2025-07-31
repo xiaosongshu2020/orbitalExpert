@@ -47,29 +47,15 @@ export QWEN_API_KEY=your_qwen_api_key_here
 建议使用虚拟环境来隔离项目依赖：
 
 ```bash
-# 创建虚拟环境
-python -m venv orbitExpert-env
-
-# 激活虚拟环境
-# Windows (命令提示符)
-orbitExpert-env\Scripts\activate
-# Windows (PowerShell)
-orbitExpert-env\Scripts\Activate.ps1
-# Linux/macOS
-source orbitExpert-env/bin/activate
+# 创建虚拟环境, 进入虚拟环境
+...
 
 # 安装依赖
-pip install -r requirements.txt
+pip install -r 'requirements.txt'
 ```
 
-### 3. 安装uv工具
-
-uv是一个极快的Python包和项目管理器。我们需要它来运行MCP服务：
-
-```bash
-# 使用pip安装uv
-pip install uv
-```
+### 3. 安装npx
+项目中的部分MCP服务需要借助npx安装到本地，访问 Node.js官网 (https://nodejs.org/) 下载 LTS（长期支持版） 并安装, 安装时默认会包含 npm 和 npx.
 
 ### 4. 安装mcp-server-satellite-orbit
 
@@ -82,15 +68,13 @@ git clone https://github.com/xiaosongshu2020/mcp-server-satellite-orbit.git
 # 进入目录
 cd mcp-server-satellite-orbit
 
-# 安装依赖
-uv sync
 ```
+
+安装MCP, 参考该项目的README.md. 
 
 ### 5. 配置MCP服务器路径
 
-项目现在会自动设置路径，无需手动修改。默认情况下，程序会假设mcp-server-satellite-orbit与orbitExpert项目在同一父目录下。
-
-如果您将mcp-server-satellite-orbit克隆到了其他位置，请相应地修改`src/orbitalExpert.py`文件中的路径设置部分：
+请相应地修改`src/orbitalExpert.py`文件中的路径设置部分：
 
 ```python
 "mcp-server-satOrbit": {
@@ -112,11 +96,3 @@ uv sync
 ```bash
 python src/orbitalExpert.py
 ```
-
-## 注意事项
-
-- 生成的数据默认保存在`./files/`目录中
-- 调用工具时，文件名必须使用绝对路径
-- 如果您修改了代码以使用其他大语言模型，请确保相应地设置环境变量
-- 项目会自动创建所需的目录（如data和files目录）
-- 默认情况下，程序会自动设置所有必要的路径，无需手动修改
