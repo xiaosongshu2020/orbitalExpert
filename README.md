@@ -96,3 +96,5 @@ cd mcp-server-satellite-orbit
 ```bash
 python src/orbitalExpert.py
 ```
+
+首次启动可能需要等待几分钟。
