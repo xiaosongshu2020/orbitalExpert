@@ -6,29 +6,11 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 import os
-import time
-import sys
 from pathlib import Path
 from datetime import datetime
 from langchain_mcp_adapters.client import MultiServerMCPClient
 import asyncio
 
-# #######################  use deepseek  #########################
-# # 从环境变量获取API密钥
-# DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-
-# # 如果环境变量中没有设置API密钥，则提示用户手动输入
-# if not DEEPSEEK_API_KEY:
-#     print("警告: 未设置DEEPSEEK_API_KEY环境变量")
-#     DEEPSEEK_API_KEY = input("请输入您的DeepSeek API密钥: ").strip()
-#     # 设置环境变量
-#     os.environ["DEEPSEEK_API_KEY"] = DEEPSEEK_API_KEY
-
-# # Create LLM
-# from langchain_deepseek import ChatDeepSeek
-# llm = ChatDeepSeek(model="deepseek-chat", api_key=DEEPSEEK_API_KEY)
-
-#######################  use qwen  #########################
 # 从环境变量获取API密钥
 QWEN_API_KEY = os.environ.get("QWEN_API_KEY")
 
@@ -39,8 +21,7 @@ if not QWEN_API_KEY:
     # 设置环境变量
     os.environ["QWEN_API_KEY"] = QWEN_API_KEY
 
-# # 选择使用的模型（默认使用deepseek）
-#采用ChatOpenAI调用示例
+# 采用ChatOpenAI调用示例
 from langchain_openai import ChatOpenAI
 llm = ChatOpenAI(
     model="qwen3-coder-plus",
@@ -48,46 +29,6 @@ llm = ChatOpenAI(
     openai_api_base="https://dashscope.aliyuncs.com/compatible-mode/v1",
     temperature=0
 )
-
-#######################  use other LLMs  #########################
-# see https://langchain-ai.github.io/langgraph/agents/models/
-
-# a function to get the tree of files
-def get_project_tree(root_path, prefix=''):
-    """生成项目文件结构树，自动忽略以'.'开头的文件/文件夹
-    
-    Args:
-        root_path (str): 根目录路径
-        prefix (str): 用于递归的内部参数，无需手动设置
-    
-    Returns:
-        str: 格式化的文件结构树字符串
-    """
-    lines = []
-    if prefix == '':  # 根目录
-        lines.append(os.path.basename(root_path.rstrip(os.sep)))
-    
-    # 过滤掉以 '.' 开头的文件/文件夹，并按字母排序
-    items = sorted(
-        [item for item in os.listdir(root_path) if not item.startswith('.')],
-        key=lambda x: (not os.path.isdir(os.path.join(root_path, x)), x)  # 目录优先
-    )
-    
-    for index, item in enumerate(items):
-        full_path = os.path.join(root_path, item)
-        is_last = index == len(items) - 1
-        
-        if os.path.isdir(full_path):
-            # 目录处理
-            lines.append(f"{prefix}{'└── ' if is_last else '├── '}{item}/")
-            new_prefix = prefix + ('    ' if is_last else '│   ')
-            lines.append(get_project_tree(full_path, new_prefix).lstrip())
-        else:
-            # 文件处理
-            lines.append(f"{prefix}{'└── ' if is_last else '├── '}{item}")
-    
-    return '\n'.join(line for line in lines if line)  # 过滤掉空行
-
 
 # 获取当前时间
 current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -98,16 +39,12 @@ DOCUMENTS_DIR = Path.home() / "Documents"
 # 确保必要的目录存在
 FILES_DIR = PROJECT_ROOT / "files"
 FILES_DIR.mkdir(exist_ok=True)
-# 获取项目文件结构
-project_tree = get_project_tree(str(PROJECT_ROOT))
 
 # 系统提示词
 SYSTEM_PROMPT = f"""你是一个专业的航天器轨道力学专家AI助手，你的名字叫'小松鼠'。
 
 当前时间：{current_time}
 项目路径：{PROJECT_ROOT}
-项目文件结构：
-{project_tree}
 
 请遵循以下原则：
 1. 优先借用工具来完成任务，如果工具不适用，再考虑手动计算；
@@ -119,34 +56,6 @@ SYSTEM_PROMPT = f"""你是一个专业的航天器轨道力学专家AI助手，�
 
 class State(TypedDict):
     messages: Annotated[list, add_messages]
-
-def print_welcome():
-    """显示欢迎信息"""
-    welcome_text = """
-╔════════════════════════════════════════════════════════════════╗
-                     🚀 轨道专家 AI 助手 🚀                     
-                                                                
-  我是您的轨道专家助手<小松鼠>，能够帮助您：                              
-  • 卫星轨道计算                                             
-  • 文件操作和数据处理                                           
-  • ...
-                                                                
-  输入 'bye' 退出程序                   
-╚════════════════════════════════════════════════════════════════╝
-"""
-    print(welcome_text)
-
-def typewriter_print(text, delay=0.02):
-    """打字机效果打印文本"""
-    for char in text:
-        sys.stdout.write(char)
-        sys.stdout.flush()
-        time.sleep(delay)
-    print()  # 换行
-
-def print_section_divider():
-    """打印分隔线"""
-    print("\n" + "═" * 60 + "\n")
 
 # Initialize async components
 async def initialize_tools():
@@ -176,7 +85,6 @@ async def initialize_tools():
                 "transport": "stdio"
             },
 
-
             "sequential-thinking": {
                 "command": "npx",
                 "args": [
@@ -190,14 +98,12 @@ async def initialize_tools():
                 "command": "uv",
                 "args": [
                     "--directory",
-                    "D:/home/projects/mcp-server-satellite-orbit/",  # run_server.py所在的路径
+                    "D:/projects_d/mcp-server-satellite-orbit/",
                     "run",
                     "run_server.py"
                 ],
                 "transport": "stdio"
             },
-            
-            
         }
     )
 
@@ -213,7 +119,7 @@ async def initialize_tools():
     else:
         tools.append(tools_mcp)
 
-    # Debug: Print tool information
+    # Print tool information
     print(f"Total tools loaded: {len(tools)}")
     for i, tool in enumerate(tools):
         if hasattr(tool, 'name'):
@@ -281,48 +187,15 @@ config = {"configurable": {"thread_id": "1"},
 
 async def async_stream_graph_updates(user_input: str):
     """异步处理用户输入并显示结果"""
-    tool_called = False
-    
     async for event in graph.astream(
         {"messages": [{"role": "user", "content": user_input}]}, 
         config):
         
         for node_name, value in event.items():
-            if node_name == "tools":
-                # 处理工具调用
-                tool_called = True
-                last_message = value["messages"][-1]
-                
-                # 打印工具名
-                if hasattr(last_message, 'name'):
-                    print(f"\n >>>>> 🔧 工具调用: {last_message.name}")
-                else:
-                    print(f"\n >>>>> 🔧 工具调用")
-
-                # 显示工具执行结果
-                if hasattr(last_message, 'content') and last_message.content:
-                    print("\n >>>>> 🔧 工具执行结果:")
-                    print(f"   {last_message.content}")
-                    print("─" * 50)
-                    
-            elif node_name == "chatbot":
-                # 处理助手回复
-                last_message = value["messages"][-1]
-                
-                # 检查是否要调用工具
-                if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-                    print(last_message.tool_calls)
-                    continue  # 如果要调用工具，先不显示回复
-                
-                # 显示助手的最终回复
-                if hasattr(last_message, 'content') and last_message.content:
-                    if tool_called:
-                        print("\n✨ 助手: ")
-                    else:
-                        print("\n✨ 助手: ")
-                    
-                    # 使用打字机效果显示回复
-                    typewriter_print(last_message.content, delay=0.01)
+            print(f"\n--- {node_name} ---")
+            if "messages" in value:
+                value["messages"][-1].pretty_print()
+            print("-" * 40)
 
 def stream_graph_updates(user_input: str):
     """同步包装器"""
@@ -330,33 +203,33 @@ def stream_graph_updates(user_input: str):
 
 def main():
     """主程序"""
-    # 显示欢迎信息
-    print_welcome()
+    print("轨道专家 AI 助手")
+    print("输入 'bye' 退出程序")
+    print("-" * 40)
     
     # 对话循环
     while True:
         try:
-            print_section_divider()
-            user_input = input("😊 用户: ")
+            user_input = input("用户: ")
             
             if user_input.lower() in ["quit", "exit", "q", "bye"]:
-                print("\n✨ 助手: 👋 再见！")
+                print("助手: 再见！")
                 break
                 
             if user_input.strip():  # 确保输入不为空
                 stream_graph_updates(user_input)
             else:
-                print("⚠️  请输入有效的问题或指令")
+                print("请输入有效的问题或指令")
                 
         except KeyboardInterrupt:
-            print("\n✨ 助手: 👋 程序被用户中断，再见！")
+            print("\n助手: 程序被用户中断，再见！")
             break
         except EOFError:
-            print("\n✨ 助手: 👋 输入结束，再见！")
+            print("\n助手: 输入结束，再见！")
             break
         except Exception as e:
-            print(f"\n❌ 发生错误: {e}")
-            print("🔄 请重试或输入其他指令")
+            print(f"发生错误: {e}")
+            print("请重试或输入其他指令")
 
 if __name__ == "__main__":
     main()
