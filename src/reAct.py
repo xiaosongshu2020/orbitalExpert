@@ -40,6 +40,14 @@ DOCUMENTS_DIR = Path.home() / "Documents"
 FILES_DIR = PROJECT_ROOT / "files"
 FILES_DIR.mkdir(exist_ok=True)
 
+# 设置mcp-server-satellite-orbit路径
+MCP_SERVER_SAT_ORBIT_PATH = Path("D:/home/projects/mcp-server-satellite-orbit/").resolve()
+
+# 检查run_server.py是否存在
+run_server_path = MCP_SERVER_SAT_ORBIT_PATH / "run_server.py"
+if not run_server_path.exists():
+    raise FileNotFoundError(f"run_server.py not found at {run_server_path}. Please check the MCP_SERVER_SAT_ORBIT_PATH in code.")
+
 # 系统提示词
 SYSTEM_PROMPT = f"""你是一个专业的航天器轨道力学专家AI助手，你的名字叫'小松鼠'。
 
@@ -86,7 +94,7 @@ async def initialize_tools():
                 "command": "uv",
                 "args": [
                     "--directory",
-                    "D:/home/projects/mcp-server-satellite-orbit/",
+                    str(MCP_SERVER_SAT_ORBIT_PATH),
                     "run",
                     "run_server.py"
                 ],
