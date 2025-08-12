@@ -47,11 +47,8 @@ SYSTEM_PROMPT = f"""你是一个专业的航天器轨道力学专家AI助手，�
 项目路径：{PROJECT_ROOT}
 
 请遵循以下原则：
-1. 优先借用工具来完成任务，如果工具不适用，再考虑手动计算；
-2. 如果你不确定某个问题的答案，请诚实地告诉用户；
-3. 生成的数据默认保存在'./files/'里；
-4. 调用工具时，文件名必须使用绝对路径；
-5. 请先给出思考过程，再调用工具或回答；
+1. 生成的数据默认保存在'./files/'里；
+2. 先分析，后行动；
 """
 
 class State(TypedDict):
@@ -85,20 +82,11 @@ async def initialize_tools():
                 "transport": "stdio"
             },
 
-            "sequential-thinking": {
-                "command": "npx",
-                "args": [
-                    "-y",
-                    "@modelcontextprotocol/server-sequential-thinking"
-                ],
-                "transport": "stdio" 
-            },
-
             "mcp-server-satOrbit": {
                 "command": "uv",
                 "args": [
                     "--directory",
-                    "D:/projects_d/mcp-server-satellite-orbit/",
+                    "D:/home/projects/mcp-server-satellite-orbit/",
                     "run",
                     "run_server.py"
                 ],
@@ -135,21 +123,69 @@ tools = asyncio.run(initialize_tools())
 # bind tools for llm
 llm_with_tools = llm.bind_tools(tools)
 
-async def chatbot(state: State):
-    """异步处理对话的主函数，包含系统提示词"""
+async def analysis(state: State):
+    """analysis 节点"""
     # 获取当前消息
     messages = state["messages"]
     
     # 检查是否需要添加系统提示词（只在第一次对话时添加）
     has_system_message = any(isinstance(msg, SystemMessage) for msg in messages)
     
+    ANALYSIS_PROMPT = """ 请先给出分析，分析包括且不限于以下的内容：
+    1. 问题概述；
+    2. 前面的信息表明，已经完成了什么；
+    3. 接下来，计划怎么做；
+
+    你现在是分析阶段，只能用文字回答，不允许调用任何工具。
+
+    """
+
     if not has_system_message:
         # 在消息列表开头插入系统提示词
         system_message = SystemMessage(content=SYSTEM_PROMPT)
-        messages_with_system = [system_message] + messages
+        analysis_prompt = SystemMessage(content=ANALYSIS_PROMPT)
+        messages_with_system = [system_message] + messages + [analysis_prompt]
     else:
         messages_with_system = messages
     
+    # print(messages_with_system)
+
+    # 调用LLM
+    response = await llm_with_tools.ainvoke(messages_with_system)
+    
+    # print(messages_with_system)
+    # print(' ')
+    # print(messages)
+
+    # print(response)
+
+    return {"messages": [response]}
+
+
+async def chatbot(state: State):
+    """异步处理对话的主函数，包含系统提示词"""
+    # 获取当前消息
+    messages = state["messages"]
+    
+    # # 检查是否需要添加系统提示词（只在第一次对话时添加）
+    # has_system_message = any(isinstance(msg, SystemMessage) for msg in messages)
+    
+    # if not has_system_message:
+    #     # 在消息列表开头插入系统提示词
+    #     system_message = SystemMessage(content=SYSTEM_PROMPT)
+    #     messages_with_system = [system_message] + messages
+    # else:
+    #     messages_with_system = messages
+    
+    # ACT_PROMPT = """ 接下来，逐步解决问题。
+    # """
+    # act_prompt = SystemMessage(content = ACT_PROMPT)
+    # messages_with_system = messages + [act_prompt]
+
+    messages_with_system = messages
+
+    # print(messages_with_system)
+
     # 调用LLM
     response = await llm_with_tools.ainvoke(messages_with_system)
     
@@ -157,6 +193,7 @@ async def chatbot(state: State):
 
 # Build graph
 graph_builder = StateGraph(State)
+graph_builder.add_node("analysis", analysis)
 graph_builder.add_node("chatbot", chatbot)
 
 # Create async tool node
@@ -167,12 +204,15 @@ async def async_tool_node(state: State):
 
 graph_builder.add_node("tools", async_tool_node)
 
+graph_builder.add_edge(START, "analysis")
+graph_builder.add_edge("analysis", "chatbot")
+
 graph_builder.add_conditional_edges(
     "chatbot",
     tools_condition,
 )
 graph_builder.add_edge("tools", "chatbot")
-graph_builder.add_edge(START, "chatbot")
+
 
 # Create memory saver
 from langgraph.checkpoint.memory import MemorySaver
@@ -205,7 +245,7 @@ def main():
     """主程序"""
     print("轨道专家 AI 助手")
     print("输入 'bye' 退出程序")
-    print("-" * 40)
+    print("-" * 80)
     
     # 对话循环
     while True:
