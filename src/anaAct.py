@@ -10,7 +10,6 @@ from pathlib import Path
 from datetime import datetime
 from langchain_mcp_adapters.client import MultiServerMCPClient
 import asyncio
-import sys
 from src.fileTree import get_file_tree
 
 # 从环境变量获取API密钥
@@ -136,20 +135,68 @@ tools = asyncio.run(initialize_tools())
 # bind tools for llm
 llm_with_tools = llm.bind_tools(tools)
 
-async def chatbot(state: State):
-    """异步处理对话的主函数，包含系统提示词"""
+async def analysis(state: State):
+    """analysis 节点"""
     # 获取当前消息
     messages = state["messages"]
     
     # 检查是否需要添加系统提示词（只在第一次对话时添加）
     has_system_message = any(isinstance(msg, SystemMessage) for msg in messages)
     
+    ANALYSIS_PROMPT = """ 请先给出分析，分析包括且不限于以下的内容：
+    1. 问题概述；
+    2. 前面的信息表明，已经完成了什么；
+    3. 接下来，计划怎么做；
+
+    你现在是分析阶段，只能用文字回答，不允许调用任何工具。
+
+    """
+
     if not has_system_message:
         # 在消息列表开头插入系统提示词
         system_message = SystemMessage(content=SYSTEM_PROMPT)
-        messages_with_system = [system_message] + messages
+        analysis_prompt = SystemMessage(content=ANALYSIS_PROMPT)
+        messages_with_system = [system_message] + messages + [analysis_prompt]
     else:
-        messages_with_system = messages
+        messages_with_system = messages + [analysis_prompt]
+    
+    # print(messages_with_system)
+
+    # 调用LLM
+    response = await llm_with_tools.ainvoke(messages_with_system)
+    
+    # print(messages_with_system)
+    # print(' ')
+    # print(messages)
+
+    # print(response)
+
+    return {"messages": [response]}
+
+
+async def chatbot(state: State):
+    """异步处理对话的主函数，包含系统提示词"""
+    # 获取当前消息
+    messages = state["messages"]
+    
+    # # 检查是否需要添加系统提示词（只在第一次对话时添加）
+    # has_system_message = any(isinstance(msg, SystemMessage) for msg in messages)
+    
+    # if not has_system_message:
+    #     # 在消息列表开头插入系统提示词
+    #     system_message = SystemMessage(content=SYSTEM_PROMPT)
+    #     messages_with_system = [system_message] + messages
+    # else:
+    #     messages_with_system = messages
+    
+    # ACT_PROMPT = """ 接下来，开始解决问题。
+    # """
+    # act_prompt = SystemMessage(content = ACT_PROMPT)
+    # messages_with_system = messages + [act_prompt]
+
+    messages_with_system = messages
+
+    # print(messages_with_system)
 
     # 调用LLM
     response = await llm_with_tools.ainvoke(messages_with_system)
@@ -158,6 +205,7 @@ async def chatbot(state: State):
 
 # Build graph
 graph_builder = StateGraph(State)
+graph_builder.add_node("analysis", analysis)
 graph_builder.add_node("chatbot", chatbot)
 
 # Create async tool node
@@ -168,7 +216,8 @@ async def async_tool_node(state: State):
 
 graph_builder.add_node("tools", async_tool_node)
 
-graph_builder.add_edge(START, "chatbot")
+graph_builder.add_edge(START, "analysis")
+graph_builder.add_edge("analysis", "chatbot")
 
 graph_builder.add_conditional_edges(
     "chatbot",
