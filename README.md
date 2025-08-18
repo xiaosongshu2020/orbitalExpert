@@ -94,7 +94,7 @@ cd mcp-server-satellite-orbit
 确保您已激活虚拟环境并设置好API密钥，然后运行：
 
 ```bash
-python src/orbitalExpert.py
+python -m src.reAct
 ```
 
 首次启动可能需要等待几分钟。
